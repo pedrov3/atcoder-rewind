@@ -32,37 +32,46 @@ def getAllSubmissions(sample_user):
     timestamp = int(data.timestamp())
     
     retval = []
-    data = getSubmission(sample_user, timestamp)
-    while (len(data) == 500):
-        retval += data
-        data = sorted(data, key=lambda x: x['epoch_second'])
-        timestamp = data[-1]["epoch_second"]
+    try:
         data = getSubmission(sample_user, timestamp)
-    retval += data
-    data = [dict(t) for t in set([tuple(d.items()) for d in retval])]
-
-    return data
+        while (len(data) == 500):
+            retval += data
+            data = sorted(data, key=lambda x: x['epoch_second'])
+            timestamp = data[-1]["epoch_second"]
+            data = getSubmission(sample_user, timestamp)
+        retval += data
+        data = [dict(t) for t in set([tuple(d.items()) for d in retval])]
+        return data
+    except:
+        return []
 
 # Estatísticas baseadas na quantidade de AC's de um usuário para problemas em uma faixa de valores
 def userAcCount(username):
     submissions = getAllSubmissions(username)
-
     stats = [set() for i in range(0, 6)]
+    if len(submissions) == 0:
+        return stats
+    
+
+    limite = datetime(2024, 1, 1)
+    limite = int(limite.timestamp())
 
     for sub in submissions:
         if sub["result"] != "AC":
             continue
+        if sub["epoch_second"] >= limite:
+            continue
         id = 0
         pts = sub["point"]
-        if pts <= 100:
+        if pts < 200:
             id = 0    
-        elif pts <= 200:
+        elif pts < 300:
             id = 1
-        elif pts <= 300:
+        elif pts < 400:
             id = 2
-        elif pts <= 400:
+        elif pts < 500:
             id = 3
-        elif pts <= 500:
+        elif pts < 600:
             id = 4
         else:
             id = 5
@@ -72,16 +81,21 @@ def userAcCount(username):
 
 
 users = get_users()
+users = list(set(users))
+
+users.append('Vilsu')
+
 cnt = 0;
 stats = []
 
 for user in users:
     print(len(users) - cnt) # Controlar o andamento
+    print(user)
     info = userAcCount(user)
     total = 0
     for i in info:
         total += len(i)
-
+    
     stats.append({'user_id' : user, 'ac' : total, '100' : len(info[0]), '200' : len(info[1]), '300' : len(info[2]), '400' : len(info[3]), '500' : len(info[4]), '+' : len(info[5])})
     #if (cnt == 4):
     #    break
@@ -89,6 +103,6 @@ for user in users:
 
 sorted_data = sorted(stats, key=lambda x: x['ac'], reverse=True)
 
-print(f"username, total, <= 100, <= 200, <= 300, <= 400, <= 500, > 500")
+print(f"username, total, < 200, < 300, < 400, < 500, < 600, >= 600")
 for user in sorted_data:
     print(f"{user['user_id']} - {user['ac'] } - {user['100']} - {user['200']} - {user['300']} - {user['400']} - {user['500']} - {user['+']}")
